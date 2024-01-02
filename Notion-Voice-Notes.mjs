@@ -86,14 +86,17 @@ export default {
 				"Main Points",
 				"Action Items",
 				"Follow-up Questions",
-				"Impact",
 				"Challenges",
+				"Stories",
+				"References",
+				"Impact",
 				"Metrics",
+				"Arguments",
 				"Related Topics",
 				"Sentiment",
 				"Difficulty",
 			],
-			default: ["Summary", "Main Points", "Action Items", "Impact", "Challenges", "Metrics", "Related Topics", "Difficulty"],
+			default: ["Summary", "Main Points", "Action Items", "Follow-up Questions"],
 			optional: false,
 		},
 		databaseID: common.props.databaseID,
@@ -941,6 +944,12 @@ export default {
 					prompt.stories = `Key "challenges:" - add an array of challenges that one might encounter on this project. Limit each item to 100 words, and limit the list to ${verbosity} items.`;
 				}
 
+				if (this.summary_options.includes("Stories")) {
+					const verbosity =
+						this.verbosity === "High" ? "5" : this.verbosity === "Medium" ? "3" : "2";
+					prompt.stories = `Key "stories:" - add an array of an stories or examples found in the transcript. Limit each item to 200 words, and limit the list to ${verbosity} items.`;
+				}
+
 				if (this.summary_options.includes("Metrics")) {
 					const verbosity =
 						this.verbosity === "High" ? "5" : this.verbosity === "Medium" ? "3" : "2";
@@ -951,6 +960,18 @@ export default {
 					const verbosity =
 						this.verbosity === "High" ? "5" : this.verbosity === "Medium" ? "3" : "2";
 					prompt.arguments = `Key "arguments:" - add an array of potential areas of positive impact that implementing the project could have. Limit each item to 100 words, and limit the list to ${verbosity} items.`;
+				}
+
+				if (this.summary_options.includes("References")) {
+					const verbosity =
+						this.verbosity === "High" ? "5" : this.verbosity === "Medium" ? "3" : "2";
+					prompt.references = `Key "references:" - add an array of references made to external works or data found in the transcript. Limit each item to 100 words, and limit the list to ${verbosity} items.`;
+				}
+
+				if (this.summary_options.includes("Arguments")) {
+					const verbosity =
+						this.verbosity === "High" ? "5" : this.verbosity === "Medium" ? "3" : "2";
+					prompt.arguments = `Key "arguments:" - add an array of potential arguments against the transcript. Limit each item to 100 words, and limit the list to ${verbosity} items.`;
 				}
 
 				if (this.summary_options.includes("Related Topics")) {
@@ -998,6 +1019,10 @@ export default {
 				exampleObject.action_items = ["item 1", "item 2", "item 3"];
 			}
 
+			if ("follow_up" in prompt) {
+				exampleObject.follow_up = ["item 1", "item 2", "item 3"];
+			}
+
 			if ("challenges" in prompt) {
 				exampleObject.challenges = ["item 1", "item 2", "item 3"];
 			}
@@ -1010,8 +1035,16 @@ export default {
 				exampleObject.references = ["item 1", "item 2", "item 3"];
 			}
 
-			if ("follow_up" in prompt) {
-				exampleObject.follow_up = ["item 1", "item 2", "item 3"];
+			if ("stories" in prompt) {
+				exampleObject.stories = ["item 1", "item 2", "item 3"];
+			}
+
+			if ("references" in prompt) {
+				exampleObject.references = ["item 1", "item 2", "item 3"];
+			}
+
+			if ("arguments" in prompt) {
+				exampleObject.arguments = ["item 1", "item 2", "item 3"];
 			}
 
 			if ("related_topics" in prompt) {
@@ -1025,6 +1058,7 @@ export default {
 			if ("difficulty" in prompt) {
 				exampleObject.difficulty = "medium";
 			}
+
 
 			prompt.example = `Here is example formatting, which contains example keys for all the requested summary elements and lists. Be sure to include all the keys and values that you are instructed to include above. Example formatting: ${JSON.stringify(
 				exampleObject,
@@ -1073,25 +1107,27 @@ export default {
 				acc.summary.push(curr.choice.summary || []);
 				acc.main_points.push(curr.choice.main_points || []);
 				acc.action_items.push(curr.choice.action_items || []);
-				acc.metrics.push(curr.choice.metrics || []);
-				acc.impact.push(curr.choice.impact || []);
-				acc.challenges.push(curr.choice.challenges || []);
+				acc.stories.push(curr.choice.stories || []);
+				acc.references.push(curr.choice.references || []);
+				acc.arguments.push(curr.choice.arguments || []);
 				acc.follow_up.push(curr.choice.follow_up || []);
 				acc.related_topics.push(curr.choice.related_topics || []);
-				acc.difficulty.push(curr.choice.difficulty);
 				acc.usageArray.push(curr.usage || 0);
+				cc.metrics.push(curr.choice.metrics || []);
+				acc.impact.push(curr.choice.impact || []);
+				acc.challenges.push(curr.choice.challenges || []);
+				acc.difficulty.push(curr.choice.difficulty);
 
 				return acc;
 			}, {
 				title: resultsArray[0]?.choice?.title,
 				sentiment: this.summary_options.includes("Sentiment") ? resultsArray[0]?.choice?.sentiment : undefined,
 				summary: [],
-				difficulty: [],
 				main_points: [],
 				action_items: [],
-				challenges: [],
-				impact: [],
-				metrics: [],
+				stories: [],
+				references: [],
+				arguments: [],
 				follow_up: [],
 				related_topics: [],
 				usageArray: [],
@@ -1132,10 +1168,13 @@ export default {
 				}),
 				main_points: chatResponse.main_points.flat(),
 				action_items: chatResponse.action_items.flat(),
-				challgenss: chatResponse.challenges.flat(),
+				stories: chatResponse.stories.flat(),
+				references: chatResponse.references.flat(),
+				arguments: chatResponse.arguments.flat(),
+				follow_up: chatResponse.follow_up.flat(),
+				challenges: chatResponse.challenges.flat(),
 				metrics: chatResponse.metrics.flat(),
 				impact: chatResponse.impact.flat(),
-				follow_up: chatResponse.follow_up.flat(),
 				difficulty: chatResponse.difficulty.flat(),
 				...(this.summary_options.includes("Related Topics") &&
 					filtered_related_set.length > 1 && {
@@ -1550,14 +1589,14 @@ export default {
 
 				additionalInfoArray.push(infoHeader);
 
-				if (header === "Challenges") {
+				if (header === "Arguments and Areas for Improvement") {
 					const argWarning = {
 						callout: {
 							rich_text: [
 								{
 									text: {
 										content:
-											"These are potential challenges that one may encounter. Like every other part of this summary document, factual accuracy is not guaranteed.",
+											"These are potential arguments and rebuttals that other people may bring up in response to the transcript. Like every other part of this summary document, factual accuracy is not guaranteed.",
 									},
 								},
 							],
@@ -1610,6 +1649,16 @@ export default {
 					itemType: "bulleted_list_item",
 				},
 				{
+					arr: meta.stories,
+					header: "Stories and Examples",
+					itemType: "bulleted_list_item",
+				},
+				{
+					arr: meta.references,
+					header: "References and Citations",
+					itemType: "bulleted_list_item",
+				},
+				{
 					arr: meta.action_items,
 					header: "Potential Action Items",
 					itemType: "to_do",
@@ -1620,8 +1669,8 @@ export default {
 					itemType: "bulleted_list_item",
 				},
 				{
-					arr: meta.metrics,
-					header: "metrics",
+					arr: meta.arguments,
+					header: "Arguments and Areas for Improvement",
 					itemType: "bulleted_list_item",
 				},
 				{
